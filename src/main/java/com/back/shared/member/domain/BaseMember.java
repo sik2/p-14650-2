@@ -6,6 +6,12 @@ import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import static lombok.AccessLevel.PROTECTED;
 
@@ -19,15 +25,37 @@ public abstract class BaseMember extends BaseEntity {
     private String password;
     private String nickname;
     private int activityScore;
+    @Column(unique = true)
+    private String apiKey;
 
-    public BaseMember(String username, String password, String nickname, int activityScore) {
+    public BaseMember(String username, String password, String nickname, int activityScore, String apiKey) {
         this.username = username;
         this.password = password;
         this.nickname = nickname;
         this.activityScore = activityScore;
+        this.apiKey = apiKey;
     }
 
     public boolean isSystem() {
         return "system".equals(username);
+    }
+
+    public boolean isAdmin() {
+        if ("system".equals(username)) return true;
+        if ("admin".equals(username)) return true;
+        return false;
+    }
+
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return getAuthoritiesAsStringList()
+                .stream()
+                .map(SimpleGrantedAuthority::new)
+                .toList();
+    }
+
+    private List<String> getAuthoritiesAsStringList() {
+        List<String> authorities = new ArrayList<>();
+        if (isAdmin()) authorities.add("ROLE_ADMIN");
+        return authorities;
     }
 }

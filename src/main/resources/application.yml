@@ -34,9 +34,17 @@ logging:
     org.hibernate.orm.jdbc.extract: TRACE
     org.springframework.transaction.interceptor: TRACE
 custom:
+  system:
+    apiKey: ${SYSTEM_API_KEY}
+  services:
+    member-url: http://localhost:8080
   global:
     internalBackUrl: http://localhost:${server.port:8080}
     holdingMemberId: 2
+  jwt:
+    secretKey: ${JWT_SECRET_KEY}
+  accessToken:
+    expirationSeconds: ${ACCESS_TOKEN_EXPIRATION_SECONDS}
   payout:
     readyWaitingDays: 14
   member:

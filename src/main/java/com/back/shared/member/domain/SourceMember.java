@@ -11,6 +11,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static jakarta.persistence.GenerationType.IDENTITY;
 
@@ -28,6 +29,6 @@ public abstract class SourceMember extends BaseMember {
     private LocalDateTime modifyDate;
 
     public SourceMember(String username, String password, String nickname) {
-        super(username, password, nickname, 0);
+        super(username, password, nickname, 0, UUID.randomUUID().toString());
     }
 }
