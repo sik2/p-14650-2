@@ -6,6 +6,8 @@ spring:
     name: post-service
   config:
     import: optional:file:.env[.properties]
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
   profiles:
     active: dev
   output:

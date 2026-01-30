@@ -3,6 +3,8 @@ server:
 spring:
   application:
     name: member-service
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   config:
     import: optional:file:.env[.properties]
   profiles:
