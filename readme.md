@@ -260,3 +260,30 @@ Member(회원) 도메인을 독립적인 마이크로서비스로 분리
 
 ### settings.gradle.kts
 - include("member-service") 추가
+
+---
+
+# 0008 - common 모듈 추출
+
+## 개요
+공통 코드(global, shared, standard)를 common 모듈로 추출하여 중복 제거
+
+## 변경 사항
+
+### common 모듈 생성
+- common/build.gradle.kts: java-library 플러그인 사용
+- api 의존성으로 전이적 노출 (Spring Boot, Security, JPA, JWT 등)
+- bootJar 비활성화 (라이브러리 모듈)
+
+### 패키지 구조
+- global: 전역 설정 (security, rq, exception, config)
+- shared: 공유 DTO/이벤트
+- standard: Util 클래스
+
+### 서비스 모듈 변경
+- 모든 서비스에서 global, shared, standard 패키지 제거
+- implementation(project(":common")) 의존성 추가
+- 중복 의존성 제거로 build.gradle.kts 간소화
+
+### settings.gradle.kts
+- include("common") 추가
