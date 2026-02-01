@@ -95,3 +95,40 @@ Gradle 멀티모듈 프로젝트 구조 설정 (post-service 모듈 준비)
 - post-service/build.gradle.kts 생성
 - 메인 클래스: com.back.PostApplication
 - 빌드 파일: post-service.jar
+
+---
+
+# 0003 - post-service 모듈 분리
+
+## 개요
+Post 도메인을 독립적인 마이크로서비스로 분리
+
+## 분리 순서 결정 기준
+모듈 간 의존성 분석 결과, **의존성이 적은 순서**로 분리:
+
+| 순서 | 모듈 | 이유 |
+|-----|------|------|
+| 1 | post | member에만 의존, 다른 모듈에서 의존 없음 (가장 독립적) |
+| 2 | payout | cash/market 이벤트 수신, 다른 모듈에서 의존 없음 |
+| 3 | cash | market에서 결제 시 의존 |
+| 4 | market | cash에 의존 (결제 처리) |
+| - | member | 모든 모듈에서 인증/인가로 의존 → 메인 서비스에 유지 |
+
+## 변경 사항
+
+### PostApplication.java
+- com.back.PostApplication 메인 클래스 생성
+
+### 패키지 복사
+- boundedContext/post: Post 도메인 전체
+- global: 전역 설정 (security, rq, exception 등)
+- shared: 공유 DTO/이벤트
+- standard: Util 클래스
+
+### CustomAuthenticationFilter 수정
+- MemberFacade 의존성 제거
+- JWT 페이로드에서 직접 사용자 정보 추출 (독립성 확보)
+
+### application.yml 설정
+- 포트: 8081
+- 애플리케이션명: post-service
