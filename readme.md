@@ -166,3 +166,32 @@ Payout(정산) 도메인을 독립적인 마이크로서비스로 분리
 
 ### .env.default
 - PAYOUT_READY_WAITING_DAYS 추가
+
+---
+
+# 0005 - cash-service 모듈 분리
+
+## 개요
+Cash(지갑/결제) 도메인을 독립적인 마이크로서비스로 분리
+
+## 분리 이유
+- market에서 결제 요청 시 의존하지만, 이벤트 기반으로 통신 가능
+- 지갑 잔액 관리 및 결제 처리를 독립적으로 운영
+
+## 변경 사항
+
+### CashApplication.java
+- com.back.CashApplication 메인 클래스 생성
+
+### 패키지 복사
+- boundedContext/cash: Cash 도메인 전체
+- global: 전역 설정
+- shared: 공유 DTO/이벤트
+- standard: Util 클래스
+
+### settings.gradle.kts
+- include("cash-service") 추가
+
+### application.yml 설정
+- 포트: 8083
+- 애플리케이션명: cash-service
