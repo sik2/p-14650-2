@@ -463,3 +463,45 @@ record 타입 변환에 따라 getter 호출 방식 변경:
 
 #### common 모듈
 - CustomAuthenticationFilter.java
+
+---
+
+# 0011 - 마이크로서비스 DataInit 패턴 적용
+
+## 개요
+마이크로서비스 환경에서 Kafka를 통한 Member 동기화를 기다린 후 DataInit을 실행하도록 변경
+
+## 변경 이유
+- 기존 모놀리식 구조에서는 같은 JVM 내에서 Member 데이터에 직접 접근 가능
+- 마이크로서비스 분리 후 각 서비스는 Kafka를 통해 Member 데이터를 동기화
+- DataInit 실행 시점에 Member 데이터가 아직 동기화되지 않아 `NoSuchElementException` 발생
+- waitForMemberSync() 패턴으로 Member 동기화 완료 후 DataInit 실행
+
+## 변경 사항
+
+### member-service/MemberDataInit.java
+- waitForOtherModules(10초): 다른 서비스들이 구동될 때까지 대기
+- system 계정에 apiKey 설정 추가 (changeApiKey)
+
+### post-service/PostDataInit.java
+- waitForMemberSync(30초): user1 Member가 동기화될 때까지 폴링
+- Member 동기화 실패 시 DataInit 스킵
+
+### cash-service/CashDataInit.java
+- waitForMemberSync(30초)
+- makeBaseWallets(): 동기화된 Member에 대해 Wallet 생성
+
+### market-service/MarketDataInit.java
+- waitForMemberSync(30초)
+- makeBaseCarts(): 동기화된 Member에 대해 Cart 생성
+- PostApiClient 의존성 제거 (상품 생성 시 하드코딩된 값 사용)
+
+### payout-service/PayoutDataInit.java
+- waitForMemberSync(30초)
+- waitForPayoutCandidateItems(60초): 주문 결제 완료 이벤트 수신 대기
+
+### PayoutFacade, PayoutSupport
+- findMemberByUsername() 메서드 추가
+
+### Member.java
+- changeApiKey() 메서드 추가

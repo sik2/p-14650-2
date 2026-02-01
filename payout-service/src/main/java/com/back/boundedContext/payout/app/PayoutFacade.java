@@ -2,6 +2,7 @@ package com.back.boundedContext.payout.app;
 
 import com.back.boundedContext.payout.domain.Payout;
 import com.back.boundedContext.payout.domain.PayoutCandidateItem;
+import com.back.boundedContext.payout.domain.PayoutMember;
 import com.back.global.rsData.RsData;
 import com.back.shared.market.dto.OrderDto;
 import com.back.shared.member.dto.MemberDto;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -51,5 +53,10 @@ public class PayoutFacade {
     @Transactional
     public RsData<Integer> completePayoutsMore(int limit) {
         return payoutCompletePayoutsMoreUseCase.completePayoutsMore(limit);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<PayoutMember> findMemberByUsername(String username) {
+        return payoutSupport.findMemberByUsername(username);
     }
 }
