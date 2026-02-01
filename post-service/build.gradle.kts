@@ -6,7 +6,6 @@ plugins {
 
 group = "com"
 version = "0.0.1-SNAPSHOT"
-description = "back"
 
 java {
     toolchain {
@@ -24,6 +23,7 @@ repositories {
     mavenCentral()
 }
 
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-h2console")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -36,14 +36,13 @@ dependencies {
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
-    testImplementation("org.springframework.batch:spring-batch-test")
-    testImplementation("org.springframework.security:spring-security-test")
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("com.h2database:h2")
     annotationProcessor("org.projectlombok:lombok")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -51,7 +50,17 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-// 메인 앱 bootJar 설정
+// 메인 클래스 명시적 지정
+springBoot {
+    mainClass.set("com.back.PostApplication")
+}
+
+// 독립 실행 가능한 JAR 생성
 tasks.bootJar {
-    archiveFileName.set("back.jar")
+    enabled = true
+    archiveFileName.set("post-service.jar")
+}
+
+tasks.jar {
+    enabled = true
 }

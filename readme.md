@@ -74,3 +74,24 @@ JWT 기반 인증/인가 시스템 도입
 | /api/v1/member/members/me | authenticated |
 | /api/v1/market/orders/** | authenticated |
 | 내부용 API (/{id}, /by-apikey, /validate-token 등) | systemApiKey 검증 |
+
+---
+
+# 0002 - 멀티모듈 프로젝트 구조 설정
+
+## 개요
+Gradle 멀티모듈 프로젝트 구조 설정 (post-service 모듈 준비)
+
+## 변경 사항
+
+### settings.gradle.kts
+- rootProject.name = "back"
+- include("post-service")
+
+### build.gradle.kts
+- bootJar { archiveFileName.set("back.jar") } 추가
+
+### post-service 모듈 생성
+- post-service/build.gradle.kts 생성
+- 메인 클래스: com.back.PostApplication
+- 빌드 파일: post-service.jar
