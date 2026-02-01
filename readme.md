@@ -195,3 +195,37 @@ Cash(지갑/결제) 도메인을 독립적인 마이크로서비스로 분리
 ### application.yml 설정
 - 포트: 8083
 - 애플리케이션명: cash-service
+
+---
+
+# 0006 - market-service 모듈 분리
+
+## 개요
+Market(상품/주문) 도메인을 독립적인 마이크로서비스로 분리
+
+## 분리 이유
+- cash에 의존하여 결제 처리하지만, 이벤트 기반으로 통신 가능
+- 상품/장바구니/주문 관리를 독립적으로 운영
+- 가장 마지막에 분리 (다른 모듈들에 대한 의존성이 가장 높음)
+
+## 변경 사항
+
+### MarketApplication.java
+- com.back.MarketApplication 메인 클래스 생성
+
+### 패키지 복사
+- boundedContext/market: Market 도메인 전체
+- global: 전역 설정
+- shared: 공유 DTO/이벤트
+- standard: Util 클래스
+
+### settings.gradle.kts
+- include("market-service") 추가
+
+### application.yml 설정
+- 포트: 8084
+- 애플리케이션명: market-service
+- custom.market.product.payoutRate: 상품 판매 정산율 (기본값: 90%)
+
+### .env.default
+- MARKET_PRODUCT_PAYOUT_RATE 추가
