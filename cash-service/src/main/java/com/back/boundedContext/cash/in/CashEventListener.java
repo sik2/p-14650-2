@@ -22,30 +22,30 @@ public class CashEventListener {
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(MemberJoinedEvent event) {
-        cashFacade.syncMember(event.getMember());
+        cashFacade.syncMember(event.member());
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(MemberModifiedEvent event) {
-        cashFacade.syncMember(event.getMember());
+        cashFacade.syncMember(event.member());
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(CashMemberCreatedEvent event) {
-        cashFacade.createWallet(event.getMember());
+        cashFacade.createWallet(event.member());
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(MarketOrderPaymentRequestedEvent event) {
-        cashFacade.completeOrderPayment(event.getOrder(), event.getPgPaymentAmount());
+        cashFacade.completeOrderPayment(event.order(), event.pgPaymentAmount());
     }
 
     @TransactionalEventListener
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(PayoutCompletedEvent event) {
-        cashFacade.completePayout(event.getPayout());
+        cashFacade.completePayout(event.payout());
     }
 }

@@ -113,7 +113,7 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (isAccessTokenExists && !isAccessTokenValid) {
-            String newAccessToken = authTokenValidator.generateAccessToken(member.getId());
+            String newAccessToken = authTokenValidator.generateAccessToken(member.id());
             if (newAccessToken != null) {
                 rq.setCookie("accessToken", newAccessToken);
                 rq.setHeader("Authorization", newAccessToken);
@@ -121,10 +121,10 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
         }
 
         UserDetails user = new SecurityUser(
-                member.getId(),
-                member.getUsername(),
+                member.id(),
+                member.username(),
                 "",
-                member.getNickname(),
+                member.nickname(),
                 Collections.emptyList()
         );
 

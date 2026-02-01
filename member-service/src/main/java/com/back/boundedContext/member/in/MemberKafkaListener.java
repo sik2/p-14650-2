@@ -20,16 +20,16 @@ public class MemberKafkaListener {
     @KafkaListener(topics = KafkaTopics.POST_CREATED, groupId = "member-service")
     @Transactional
     public void handlePostCreated(PostCreatedEvent event) {
-        log.info("Received PostCreatedEvent via Kafka: postId={}", event.getPost().getId());
-        Member member = memberFacade.findById(event.getPost().getAuthorId()).get();
+        log.info("Received PostCreatedEvent via Kafka: postId={}", event.post().id());
+        Member member = memberFacade.findById(event.post().authorId()).get();
         member.increaseActivityScore(3);
     }
 
     @KafkaListener(topics = KafkaTopics.POST_COMMENT_CREATED, groupId = "member-service")
     @Transactional
     public void handlePostCommentCreated(PostCommentCreatedEvent event) {
-        log.info("Received PostCommentCreatedEvent via Kafka: commentId={}", event.getPostComment().getId());
-        Member member = memberFacade.findById(event.getPostComment().getAuthorId()).get();
+        log.info("Received PostCommentCreatedEvent via Kafka: commentId={}", event.postComment().id());
+        Member member = memberFacade.findById(event.postComment().authorId()).get();
         member.increaseActivityScore(1);
     }
 }

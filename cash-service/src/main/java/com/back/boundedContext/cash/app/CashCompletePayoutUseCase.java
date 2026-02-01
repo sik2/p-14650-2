@@ -13,20 +13,20 @@ public class CashCompletePayoutUseCase {
 
     public void completePayout(PayoutDto payout) {
         Wallet holdingWallet = cashSupport.findHoldingWallet().get();
-        Wallet payeeWallet = cashSupport.findWalletByHolderId(payout.getPayeeId()).get();
+        Wallet payeeWallet = cashSupport.findWalletByHolderId(payout.payeeId()).get();
 
         holdingWallet.debit(
-                payout.getAmount(),
+                payout.amount(),
                 payout.isPayeeSystem() ? CashLog.EventType.정산지급__상품판매_수수료 : CashLog.EventType.정산지급__상품판매_대금,
                 payout.getModelTypeCode(),
-                payout.getId()
+                payout.id()
         );
 
         payeeWallet.credit(
-                payout.getAmount(),
+                payout.amount(),
                 payout.isPayeeSystem() ? CashLog.EventType.정산수령__상품판매_수수료 : CashLog.EventType.정산수령__상품판매_대금,
                 payout.getModelTypeCode(),
-                payout.getId()
+                payout.id()
         );
     }
 }

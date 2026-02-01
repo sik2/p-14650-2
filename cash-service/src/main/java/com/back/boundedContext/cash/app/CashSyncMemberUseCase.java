@@ -15,17 +15,17 @@ public class CashSyncMemberUseCase {
     private final EventPublisher eventPublisher;
 
     public CashMember syncMember(MemberDto member) {
-        boolean isNew = !cashMemberRepository.existsById(member.getId());
+        boolean isNew = !cashMemberRepository.existsById(member.id());
 
         CashMember _member = cashMemberRepository.save(
                 new CashMember(
-                        member.getId(),
-                        member.getCreateDate(),
-                        member.getModifyDate(),
-                        member.getUsername(),
+                        member.id(),
+                        member.createDate(),
+                        member.modifyDate(),
+                        member.username(),
                         "",
-                        member.getNickname(),
-                        member.getActivityScore()
+                        member.nickname(),
+                        member.activityScore()
                 )
         );
 

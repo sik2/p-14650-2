@@ -20,7 +20,7 @@ public class PayoutAddPayoutCandidateItemsUseCase {
     private final PayoutCandidateItemRepository payoutCandidateItemRepository;
 
     public void addPayoutCandidateItems(OrderDto order) {
-        marketApiClient.getOrderItems(order.getId())
+        marketApiClient.getOrderItems(order.id())
                 .forEach(orderItem -> makePayoutCandidateItems(order, orderItem));
     }
 
@@ -29,27 +29,27 @@ public class PayoutAddPayoutCandidateItemsUseCase {
             OrderItemDto orderItem
     ) {
         PayoutMember system = payoutSupport.findSystemMember().get();
-        PayoutMember buyer = payoutSupport.findMemberById(orderItem.getBuyerId()).get();
-        PayoutMember seller = payoutSupport.findMemberById(orderItem.getSellerId()).get();
+        PayoutMember buyer = payoutSupport.findMemberById(orderItem.buyerId()).get();
+        PayoutMember seller = payoutSupport.findMemberById(orderItem.sellerId()).get();
 
         makePayoutCandidateItem(
                 PayoutEventType.정산__상품판매_수수료,
                 orderItem.getModelTypeCode(),
-                orderItem.getId(),
-                order.getPaymentDate(),
+                orderItem.id(),
+                order.paymentDate(),
                 buyer,
                 system,
-                orderItem.getPayoutFee()
+                orderItem.payoutFee()
         );
 
         makePayoutCandidateItem(
                 PayoutEventType.정산__상품판매_대금,
                 orderItem.getModelTypeCode(),
-                orderItem.getId(),
-                order.getPaymentDate(),
+                orderItem.id(),
+                order.paymentDate(),
                 buyer,
                 seller,
-                orderItem.getSalePriceWithoutFee()
+                orderItem.salePriceWithoutFee()
         );
     }
 
