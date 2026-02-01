@@ -7,6 +7,7 @@ import com.back.global.exception.DomainException;
 import com.back.global.rsData.RsData;
 import com.back.shared.member.event.MemberJoinedEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,13 +15,15 @@ import org.springframework.stereotype.Service;
 public class MemberJoinUseCase {
     private final MemberRepository memberRepository;
     private final EventPublisher eventPublisher;
+    private final PasswordEncoder passwordEncoder;
 
     public RsData<Member> join(String username, String password, String nickname) {
         memberRepository.findByUsername(username).ifPresent(m -> {
             throw new DomainException("409-1", "이미 존재하는 username 입니다.");
         });
 
-        Member member = memberRepository.save(new Member(username, password, nickname));
+        String encodedPassword = passwordEncoder.encode(password);
+        Member member = memberRepository.save(new Member(username, encodedPassword, nickname));
 
         eventPublisher.publish(new MemberJoinedEvent(member.toDto()));
 

@@ -23,4 +23,8 @@ public class MemberSupport {
     public Optional<Member> findById(int id) {
         return memberRepository.findById(id);
     }
+
+    public Optional<Member> findByApiKey(String apiKey) {
+        return memberRepository.findByApiKey(apiKey);
+    }
 }
