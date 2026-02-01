@@ -229,3 +229,34 @@ Market(상품/주문) 도메인을 독립적인 마이크로서비스로 분리
 
 ### .env.default
 - MARKET_PRODUCT_PAYOUT_RATE 추가
+
+---
+
+# 0007 - member-service 모듈 분리
+
+## 개요
+Member(회원) 도메인을 독립적인 마이크로서비스로 분리
+기존 src 디렉토리를 member-service로 이름 변경
+
+## 분리 이유
+- 모든 boundedContext 도메인을 독립적인 서비스로 운영
+- src → member-service 리팩토링으로 일관된 프로젝트 구조
+
+## 변경 사항
+
+### src → member-service 이름 변경
+- BackApplication → MemberApplication 이름 변경
+
+### 불필요한 boundedContext 제거
+- boundedContext/post, cash, market, payout 제거 (각 서비스에 이미 존재)
+
+### build.gradle.kts 수정
+- mainClass: com.back.MemberApplication
+- bootJar: member-service.jar
+
+### application.yml 설정
+- 포트: 8080
+- 애플리케이션명: member-service
+
+### settings.gradle.kts
+- include("member-service") 추가
