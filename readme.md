@@ -132,3 +132,37 @@ Post 도메인을 독립적인 마이크로서비스로 분리
 ### application.yml 설정
 - 포트: 8081
 - 애플리케이션명: post-service
+
+---
+
+# 0004 - payout-service 모듈 분리
+
+## 개요
+Payout(정산) 도메인을 독립적인 마이크로서비스로 분리
+
+## 분리 이유
+- 다른 모듈에서 payout을 직접 의존하지 않음
+- cash/market 이벤트를 수신하여 정산 처리 (이벤트 기반 느슨한 결합)
+- 배치 작업(정산 집계/완료) 독립 실행 가능
+
+## 변경 사항
+
+### PayoutApplication.java
+- com.back.PayoutApplication 메인 클래스 생성
+
+### 패키지 복사
+- boundedContext/payout: Payout 도메인 전체
+- global: 전역 설정
+- shared: 공유 DTO/이벤트
+- standard: Util 클래스
+
+### settings.gradle.kts
+- include("payout-service") 추가
+
+### application.yml 설정
+- 포트: 8082
+- 애플리케이션명: payout-service
+- custom.payout.readyWaitingDays: 정산 대기 일수 (기본값: 14일)
+
+### .env.default
+- PAYOUT_READY_WAITING_DAYS 추가
