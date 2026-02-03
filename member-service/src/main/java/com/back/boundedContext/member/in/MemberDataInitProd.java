@@ -12,18 +12,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Configuration
 @Slf4j
-@Profile("!prod")
-public class MemberDataInit {
-    private static final int WAIT_FOR_OTHER_MODULES_SECONDS = 10;
-
-    private final MemberDataInit self;
+@Profile("prod")
+public class MemberDataInitProd {
+    private final MemberDataInitProd self;
     private final MemberFacade memberFacade;
 
     @Value("${custom.system.apiKey}")
     private String systemApiKey;
 
-    public MemberDataInit(
-            @Lazy MemberDataInit self,
+    public MemberDataInitProd(
+            @Lazy MemberDataInitProd self,
             MemberFacade memberFacade
     ) {
         this.self = self;
@@ -31,22 +29,10 @@ public class MemberDataInit {
     }
 
     @Bean
-    public ApplicationRunner memberDataInitApplicationRunner() {
+    public ApplicationRunner memberDataInitProdApplicationRunner() {
         return args -> {
-            waitForOtherModules();
             self.makeBaseMembers();
         };
-    }
-
-    private void waitForOtherModules() {
-        log.info("Waiting {}s for other modules to start...", WAIT_FOR_OTHER_MODULES_SECONDS);
-        try {
-            Thread.sleep(WAIT_FOR_OTHER_MODULES_SECONDS * 1000L);
-            log.info("Wait complete. Proceeding with member data init.");
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("Wait interrupted.");
-        }
     }
 
     @Transactional
@@ -61,8 +47,7 @@ public class MemberDataInit {
 
         memberFacade.join("holding", "1234", "홀딩");
         memberFacade.join("admin", "1234", "관리자");
-        memberFacade.join("user1", "1234", "유저1");
-        memberFacade.join("user2", "1234", "유저2");
-        memberFacade.join("user3", "1234", "유저3");
+
+        log.info("Prod base members created: system, holding, admin");
     }
 }

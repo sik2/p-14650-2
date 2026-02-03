@@ -17,6 +17,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Profile;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -25,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 
 @Configuration
 @Slf4j
+@Profile("!prod")
 public class PayoutDataInit {
     private static final int WAIT_SECONDS = 60;
     private static final int RETRY_INTERVAL_MS = 1000;

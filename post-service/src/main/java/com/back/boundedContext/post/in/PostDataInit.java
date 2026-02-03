@@ -9,10 +9,12 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Profile;
 import org.springframework.transaction.annotation.Transactional;
 
 @Configuration
 @Slf4j
+@Profile("!prod")
 public class PostDataInit {
     private static final int WAIT_SECONDS = 30;
     private static final int RETRY_INTERVAL_MS = 1000;
