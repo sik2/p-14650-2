@@ -25,6 +25,7 @@ repositories {
 }
 
 dependencies {
+    api("org.springframework.boot:spring-boot-starter-actuator")
     api("org.springframework.boot:spring-boot-starter-data-jpa")
     api("org.springframework.boot:spring-boot-starter-webmvc")
     api("org.springframework.boot:spring-boot-starter-validation")
@@ -36,6 +37,7 @@ dependencies {
     api("org.springframework.kafka:spring-kafka")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+    runtimeOnly("com.mysql:mysql-connector-j")
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 }
