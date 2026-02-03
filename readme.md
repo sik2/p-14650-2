@@ -508,3 +508,292 @@ record 타입 변환에 따라 getter 호출 방식 변경:
 
 ### Member.java
 - changeApiKey() 메서드 추가
+
+---
+
+# Docker Desktop Kubernetes 배포
+
+## 개요
+Docker Desktop Kubernetes 환경에 마이크로서비스 배포
+
+## 프로젝트 구조
+
+### 디렉토리 구조
+```
+k8s/
+├── namespace.yaml      # backend 네임스페이스
+├── secret.yaml         # 환경변수 시크릿
+├── mysql.yaml          # MySQL StatefulSet
+├── redpanda.yaml       # Kafka 호환 메시지 브로커
+├── traefik.yaml        # Ingress Controller
+├── ingress.yaml        # 라우팅 규칙
+├── member-service.yaml
+├── post-service.yaml
+├── payout-service.yaml
+├── cash-service.yaml
+├── market-service.yaml
+└── kustomization.yaml
+
+script/
+└── push-images.sh      # 이미지 빌드/푸시 스크립트
+
+Dockerfile              # 멀티스테이지 빌드 (전 서비스 공통)
+docker-compose.yml      # 로컬 개발 및 이미지 빌드용
+```
+
+### 서비스 구성
+| 서비스 | 포트 | 설명 |
+|--------|------|------|
+| member-service | 8080 | 회원 관리 |
+| post-service | 8080 | 게시글 관리 |
+| payout-service | 8080 | 정산 관리 |
+| cash-service | 8080 | 지갑/결제 관리 |
+| market-service | 8080 | 상품/주문 관리 |
+| mysql-service | 3306 | 데이터베이스 |
+| redpanda | 29092 | Kafka 브로커 |
+| traefik | 80/443/8080 | Ingress Controller |
+
+---
+
+## 배포 순서
+
+### Step 1: Docker Hub 로그인
+```bash
+docker login
+# Username: sik2dev
+# Password: (Docker Hub 토큰)
+```
+
+### Step 2: Docker 이미지 빌드 및 푸시
+
+#### 전체 서비스 (스크립트)
+```bash
+./script/push-images.sh
+```
+
+#### 개별 서비스
+```bash
+# 빌드
+docker compose build post-service
+
+# 푸시
+docker push sik2dev/p-14650-2:post-service
+```
+
+#### 캐시 무시 빌드 (코드 변경 반영 안될 때)
+```bash
+docker builder prune -f
+docker compose build --no-cache post-service
+```
+
+### Step 3: Kubernetes 배포
+
+#### 전체 배포 (Kustomize)
+```bash
+kubectl apply -k k8s/
+```
+
+#### 개별 배포 (순서대로)
+```bash
+# 1. 네임스페이스
+kubectl apply -f k8s/namespace.yaml
+
+# 2. 시크릿
+kubectl apply -f k8s/secret.yaml
+
+# 3. 인프라 (MySQL, Kafka)
+kubectl apply -f k8s/mysql.yaml
+kubectl apply -f k8s/redpanda.yaml
+
+# 4. Ingress Controller
+kubectl apply -f k8s/traefik.yaml
+
+# 5. 라우팅 규칙
+kubectl apply -f k8s/ingress.yaml
+
+# 6. 애플리케이션 서비스
+kubectl apply -f k8s/member-service.yaml
+kubectl apply -f k8s/post-service.yaml
+kubectl apply -f k8s/payout-service.yaml
+kubectl apply -f k8s/cash-service.yaml
+kubectl apply -f k8s/market-service.yaml
+```
+
+### Step 4: 상태 확인
+```bash
+# Pod 상태
+kubectl get pods -n backend
+
+# 모든 Pod가 Running 상태인지 확인
+kubectl get pods -n backend -w
+
+# 서비스 상태
+kubectl get svc -n backend
+
+# 특정 서비스 로그
+kubectl logs -n backend deployment/post-service
+```
+
+### Step 5: 접속 테스트
+```bash
+# API 테스트
+curl http://api.127.0.0.1.nip.io/api/v1/post/posts
+
+# Health Check
+curl http://api.127.0.0.1.nip.io/api/v1/member/actuator/health
+```
+
+---
+
+## 이미지 업데이트 시
+
+```bash
+# 1. 이미지 빌드 및 푸시
+docker compose build post-service
+docker push sik2dev/p-14650-2:post-service
+
+# 2. Pod 재시작
+kubectl rollout restart deployment/post-service -n backend
+
+# 3. 상태 확인
+kubectl rollout status deployment/post-service -n backend
+```
+
+---
+
+## 접속 정보
+
+| 서비스 | URL |
+|--------|-----|
+| API | http://api.127.0.0.1.nip.io/api/v1/{서비스}/... |
+| Traefik 대시보드 | http://localhost:8080/dashboard/ |
+
+### API 예시
+```bash
+# 게시글 목록
+curl http://api.127.0.0.1.nip.io/api/v1/post/posts
+
+# 회원 정보 (인증 필요)
+curl http://api.127.0.0.1.nip.io/api/v1/member/members/me
+```
+
+### MySQL 접속
+```bash
+kubectl exec -it -n backend mysql-0 -- mysql -u root -p
+# 비밀번호: secret.yaml의 MYSQL_PASSWORD 값 (root1234)
+```
+
+---
+
+## Dockerfile 구조
+
+멀티스테이지 빌드로 모든 서비스에 단일 Dockerfile 사용:
+
+```dockerfile
+# 1단계: 빌드
+FROM eclipse-temurin:25-jdk-alpine AS build
+ARG MODULE
+COPY gradlew gradle settings.gradle.kts ./
+COPY common/build.gradle.kts common/
+COPY ${MODULE}/build.gradle.kts ${MODULE}/
+RUN ./gradlew dependencies --no-daemon || true
+COPY common/src/ common/src/
+COPY ${MODULE}/src/ ${MODULE}/src/
+RUN ./gradlew :${MODULE}:bootJar --no-daemon -x test
+
+# 2단계: 실행
+FROM eclipse-temurin:25-jre-alpine
+COPY --from=build /app/${MODULE}/build/libs/*.jar app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+### 이미지 태그 규칙
+```
+sik2dev/p-14650-2:{서비스명}
+
+- sik2dev/p-14650-2:member-service
+- sik2dev/p-14650-2:post-service
+- sik2dev/p-14650-2:payout-service
+- sik2dev/p-14650-2:cash-service
+- sik2dev/p-14650-2:market-service
+```
+
+---
+
+## Traefik Ingress Controller
+
+### 역할 분담
+| 파일 | 역할 |
+|------|------|
+| traefik.yaml | Ingress Controller (트래픽 처리 엔진) |
+| ingress.yaml | 라우팅 규칙 (URL → 서비스 매핑) |
+
+### traefik.yaml 구성
+- IngressClass: traefik (기본 클래스)
+- ServiceAccount, ClusterRole, ClusterRoleBinding: RBAC 권한
+- Deployment: traefik:v3.0 이미지
+- Service: LoadBalancer 타입 (Docker Desktop에서 localhost로 노출)
+
+### ingress.yaml 라우팅
+```yaml
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: api.127.0.0.1.nip.io
+      http:
+        paths:
+          - path: /api/v1/member  → member-service:8080
+          - path: /api/v1/post    → post-service:8080
+          - path: /api/v1/payout  → payout-service:8080
+          - path: /api/v1/cash    → cash-service:8080
+          - path: /api/v1/market  → market-service:8080
+```
+
+---
+
+## 주의사항
+
+### application-prod.yml
+모든 서비스에 `server.port: 8080` 설정 필요 (k8s Service가 8080 포트 기대)
+
+### Spring Batch 설정
+payout-service만 배치 잡을 사용하므로 배치 메타 테이블 생성 여부를 분리:
+
+| 서비스 | initialize-schema | 설명 |
+|--------|-------------------|------|
+| payout-service | always | 배치 테이블 생성 (BATCH_JOB_INSTANCE 등) |
+| member-service | never | 배치 테이블 생성 안함 |
+| post-service | never | 배치 테이블 생성 안함 |
+| cash-service | never | 배치 테이블 생성 안함 |
+| market-service | never | 배치 테이블 생성 안함 |
+
+```yaml
+# payout-service/application-prod.yml
+spring:
+  batch:
+    job:
+      enabled: false  # 앱 시작 시 자동 실행 비활성화
+    jdbc:
+      initialize-schema: always  # 배치 테이블 자동 생성
+
+# 다른 서비스/application-prod.yml
+spring:
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: never  # 배치 테이블 생성 안함
+```
+
+### HTTPS (프로덕션)
+```yaml
+# cert-manager + Let's Encrypt 사용
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - api.yourdomain.com
+      secretName: api-tls
+```
