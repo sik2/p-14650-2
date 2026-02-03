@@ -287,3 +287,97 @@ Member(회원) 도메인을 독립적인 마이크로서비스로 분리
 
 ### settings.gradle.kts
 - include("common") 추가
+
+---
+
+# 0009 - Kafka 기반 서비스 간 이벤트 통신
+
+## 개요
+Spring Kafka를 도입하여 마이크로서비스 간 비동기 이벤트 통신 구현
+
+## 도입 이유
+- 기존 ApplicationEventPublisher는 동일 JVM 내에서만 동작
+- 마이크로서비스 분리 후 서비스 간 이벤트 전파 불가
+- Kafka를 통한 분산 이벤트 기반 아키텍처 구현
+
+## 변경 사항
+
+### common 모듈 - Kafka 인프라
+
+#### build.gradle.kts
+- spring-kafka 의존성 추가
+
+#### KafkaConfig.java (com.back.global.kafka)
+- @EnableKafka 설정
+- ProducerFactory: JsonSerializer 사용
+- ConsumerFactory: ErrorHandlingDeserializer + JsonDeserializer 사용
+- KafkaTemplate, KafkaListenerContainerFactory 빈 등록
+
+#### KafkaTopics.java
+- 토픽 상수 정의:
+  - member.joined, member.modified
+  - post.created, post.comment.created
+  - market.order.payment.requested, market.order.payment.completed
+  - cash.order.payment.succeeded, cash.order.payment.failed
+  - payout.completed
+
+#### KafkaEventPublisher.java
+- 이벤트 타입별 토픽 자동 매핑
+- KafkaTemplate을 통한 이벤트 발행
+
+#### EventPublisher.java 수정
+- ApplicationEventPublisher (로컬) + KafkaEventPublisher (분산) 이중 발행
+
+### 서비스별 KafkaListener
+
+#### member-service
+- MemberKafkaListener.java
+- 수신: PostCreatedEvent, PostCommentCreatedEvent
+
+#### post-service
+- PostKafkaListener.java
+- 수신: MemberJoinedEvent, MemberModifiedEvent
+
+#### cash-service
+- CashKafkaListener.java
+- 수신: MemberJoinedEvent, MemberModifiedEvent, MarketOrderPaymentRequestedEvent, PayoutCompletedEvent
+
+#### market-service
+- MarketKafkaListener.java
+- 수신: MemberJoinedEvent, MemberModifiedEvent, CashOrderPaymentSucceededEvent, CashOrderPaymentFailedEvent
+
+#### payout-service
+- PayoutKafkaListener.java
+- 수신: MemberJoinedEvent, MemberModifiedEvent, MarketOrderPaymentCompletedEvent
+
+### application.yml 설정
+- 모든 서비스에 spring.kafka.bootstrap-servers 추가
+- 환경변수: KAFKA_BOOTSTRAP_SERVERS (기본값: localhost:9092)
+
+### Docker Compose 설정 (docker-compose.yml)
+
+#### Redpanda (Kafka 호환 메시지 브로커)
+- 이미지: redpandadata/redpanda:v24.1.1
+- 포트: 9092 (외부), 29092 (내부)
+- 경량 Kafka 대안으로 개발 환경에 적합
+
+#### Redpanda Console (관리 UI)
+- 이미지: redpandadata/console:v2.5.2
+- 포트: 8090
+- 토픽/메시지 모니터링 UI
+
+#### 실행 방법
+```bash
+docker-compose up -d
+```
+
+## 이벤트 흐름도
+
+```
+[member-service] --MemberJoinedEvent--> [post, cash, market, payout]
+[post-service] --PostCreatedEvent--> [member]
+[market-service] --MarketOrderPaymentRequestedEvent--> [cash]
+[market-service] --MarketOrderPaymentCompletedEvent--> [payout]
+[cash-service] --CashOrderPaymentSucceededEvent--> [market]
+[payout-service] --PayoutCompletedEvent--> [cash]
+```
