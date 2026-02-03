@@ -1,3 +1,15 @@
+x-service-common: &service-common
+  profiles:
+    - prod
+  environment:
+    SPRING_PROFILES_ACTIVE: prod
+  env_file:
+    - .env
+
+x-build-common: &build-common
+  context: .
+  dockerfile: Dockerfile
+
 services:
   redpanda:
     image: redpandadata/redpanda:v24.1.1
@@ -25,3 +37,70 @@ services:
       - "8090:8080"
     environment:
       KAFKA_BROKERS: redpanda:29092
+
+  mysql-service:
+    profiles:
+      - prod
+    image: mysql:8.4
+    container_name: mysql-service
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  member-service:
+    <<: *service-common
+    build:
+      <<: *build-common
+      args:
+        MODULE: member-service
+    container_name: member-service
+    image: sik2dev/p-14650-2:member-service
+
+  post-service:
+    <<: *service-common
+    build:
+      <<: *build-common
+      args:
+        MODULE: post-service
+    container_name: post-service
+    image: sik2dev/p-14650-2:post-service
+
+  payout-service:
+    <<: *service-common
+    build:
+      <<: *build-common
+      args:
+        MODULE: payout-service
+    container_name: payout-service
+    image: sik2dev/p-14650-2:payout-service
+
+  cash-service:
+    <<: *service-common
+    build:
+      <<: *build-common
+      args:
+        MODULE: cash-service
+    container_name: cash-service
+    image: sik2dev/p-14650-2:cash-service
+
+  market-service:
+    <<: *service-common
+    build:
+      <<: *build-common
+      args:
+        MODULE: market-service
+    container_name: market-service
+    image: sik2dev/p-14650-2:market-service
+
+volumes:
+  mysql-data:
