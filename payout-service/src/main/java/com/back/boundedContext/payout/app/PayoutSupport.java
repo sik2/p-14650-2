@@ -20,6 +20,10 @@ public class PayoutSupport {
         return payoutMemberRepository.findByUsername("system");
     }
 
+    public Optional<PayoutMember> findMemberByUsername(String username) {
+        return payoutMemberRepository.findByUsername(username);
+    }
+
     public Optional<PayoutMember> findMemberById(int id) {
         return payoutMemberRepository.findById(id);
     }

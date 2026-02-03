@@ -39,4 +39,8 @@ public class Member extends SourceMember {
 
         return getActivityScore();
     }
+
+    public void changeApiKey(String apiKey) {
+        setApiKey(apiKey);
+    }
 }

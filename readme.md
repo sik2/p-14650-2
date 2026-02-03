@@ -67,13 +67,22 @@ JWT 기반 인증/인가 시스템 도입
 ### API 권한 설정 (SecurityConfig)
 | 엔드포인트 | 권한 |
 |-----------|------|
-| /api/v1/member/members/login | permitAll |
-| /api/v1/member/members/join | permitAll |
-| /api/v1/member/members/logout | permitAll |
-| /api/v1/member/members/randomSecureTip | permitAll |
-| /api/v1/member/members/me | authenticated |
-| /api/v1/market/orders/** | authenticated |
-| 내부용 API (/{id}, /by-apikey, /validate-token 등) | systemApiKey 검증 |
+| /favicon.ico | permitAll |
+| /h2-console/** | permitAll |
+| GET /api/*/post/posts, /api/*/post/posts/{id} | permitAll |
+| GET /api/*/post/posts/{postId}/comments/** | permitAll |
+| /api/*/member/members/login, logout | permitAll |
+| POST /api/*/member/members/join | permitAll |
+| /api/*/adm/** | hasRole(ADMIN) |
+| /api/*/** | authenticated |
+| 기타 | permitAll |
+
+### CORS 설정
+- 허용 Origin: https://cdpn.io, http://localhost:3000
+- 허용 메서드: GET, POST, PUT, PATCH, DELETE
+
+### 시스템 API Key 인증
+- systemApiKey로 요청 시 시스템 사용자(id=1, username=system)로 인증 설정
 
 ---
 
@@ -164,9 +173,6 @@ Payout(정산) 도메인을 독립적인 마이크로서비스로 분리
 - 애플리케이션명: payout-service
 - custom.payout.readyWaitingDays: 정산 대기 일수 (기본값: 14일)
 
-### .env.default
-- PAYOUT_READY_WAITING_DAYS 추가
-
 ---
 
 # 0005 - cash-service 모듈 분리
@@ -226,9 +232,6 @@ Market(상품/주문) 도메인을 독립적인 마이크로서비스로 분리
 - 포트: 8084
 - 애플리케이션명: market-service
 - custom.market.product.payoutRate: 상품 판매 정산율 (기본값: 90%)
-
-### .env.default
-- MARKET_PRODUCT_PAYOUT_RATE 추가
 
 ---
 
@@ -311,6 +314,7 @@ Spring Kafka를 도입하여 마이크로서비스 간 비동기 이벤트 통�
 - @EnableKafka 설정
 - ProducerFactory: JsonSerializer 사용
 - ConsumerFactory: ErrorHandlingDeserializer + JsonDeserializer 사용
+- auto.offset.reset: latest (새 컨슈머 그룹은 최신 메시지부터 소비)
 - KafkaTemplate, KafkaListenerContainerFactory 빈 등록
 
 #### KafkaTopics.java
@@ -351,8 +355,7 @@ Spring Kafka를 도입하여 마이크로서비스 간 비동기 이벤트 통�
 - 수신: MemberJoinedEvent, MemberModifiedEvent, MarketOrderPaymentCompletedEvent
 
 ### application.yml 설정
-- 모든 서비스에 spring.kafka.bootstrap-servers 추가
-- 환경변수: KAFKA_BOOTSTRAP_SERVERS (기본값: localhost:9092)
+- 모든 서비스에 spring.kafka.bootstrap-servers: localhost:9092 추가
 
 ### Docker Compose 설정 (docker-compose.yml)
 
@@ -463,3 +466,45 @@ record 타입 변환에 따라 getter 호출 방식 변경:
 
 #### common 모듈
 - CustomAuthenticationFilter.java
+
+---
+
+# 0011 - 마이크로서비스 DataInit 패턴 적용
+
+## 개요
+마이크로서비스 환경에서 Kafka를 통한 Member 동기화를 기다린 후 DataInit을 실행하도록 변경
+
+## 변경 이유
+- 기존 모놀리식 구조에서는 같은 JVM 내에서 Member 데이터에 직접 접근 가능
+- 마이크로서비스 분리 후 각 서비스는 Kafka를 통해 Member 데이터를 동기화
+- DataInit 실행 시점에 Member 데이터가 아직 동기화되지 않아 `NoSuchElementException` 발생
+- waitForMemberSync() 패턴으로 Member 동기화 완료 후 DataInit 실행
+
+## 변경 사항
+
+### member-service/MemberDataInit.java
+- waitForOtherModules(10초): 다른 서비스들이 구동될 때까지 대기
+- system 계정에 apiKey 설정 추가 (changeApiKey)
+
+### post-service/PostDataInit.java
+- waitForMemberSync(30초): user1 Member가 동기화될 때까지 폴링
+- Member 동기화 실패 시 DataInit 스킵
+
+### cash-service/CashDataInit.java
+- waitForMemberSync(30초)
+- makeBaseWallets(): 동기화된 Member에 대해 Wallet 생성
+
+### market-service/MarketDataInit.java
+- waitForMemberSync(30초)
+- makeBaseCarts(): 동기화된 Member에 대해 Cart 생성
+- PostApiClient 의존성 제거 (상품 생성 시 하드코딩된 값 사용)
+
+### payout-service/PayoutDataInit.java
+- waitForMemberSync(30초)
+- waitForPayoutCandidateItems(60초): 주문 결제 완료 이벤트 수신 대기
+
+### PayoutFacade, PayoutSupport
+- findMemberByUsername() 메서드 추가
+
+### Member.java
+- changeApiKey() 메서드 추가

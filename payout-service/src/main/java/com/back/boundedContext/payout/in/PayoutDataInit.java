@@ -17,7 +17,6 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.core.annotation.Order;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -27,6 +26,9 @@ import java.time.format.DateTimeFormatter;
 @Configuration
 @Slf4j
 public class PayoutDataInit {
+    private static final int WAIT_SECONDS = 60;
+    private static final int RETRY_INTERVAL_MS = 1000;
+
     private final PayoutDataInit self;
     private final PayoutFacade payoutFacade;
     private final JobOperator jobOperator;
@@ -45,14 +47,60 @@ public class PayoutDataInit {
     }
 
     @Bean
-    @Order(4)
     public ApplicationRunner payoutDataInitApplicationRunner() {
         return args -> {
-            self.forceMakePayoutReadyCandidatesItems();
-            self.collectPayoutItemsMore();
-            self.completePayoutsMore();
-            self.runCollectItemsAndCompletePayoutsBatchJob();
+            if (!waitForMemberSync()) {
+                return;
+            }
+            if (waitForPayoutCandidateItems()) {
+                self.forceMakePayoutReadyCandidatesItems();
+                self.collectPayoutItemsMore();
+                self.completePayoutsMore();
+                self.runCollectItemsAndCompletePayoutsBatchJob();
+            }
         };
+    }
+
+    private boolean waitForMemberSync() {
+        log.info("Waiting up to {}s for member sync...", WAIT_SECONDS);
+
+        int maxRetries = WAIT_SECONDS * 1000 / RETRY_INTERVAL_MS;
+        for (int i = 0; i < maxRetries; i++) {
+            if (payoutFacade.findMemberByUsername("user1").isPresent()) {
+                log.info("Member sync completed.");
+                return true;
+            }
+            try {
+                Thread.sleep(RETRY_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+
+        log.warn("Member sync timeout after {}s. Skipping data init.", WAIT_SECONDS);
+        return false;
+    }
+
+    private boolean waitForPayoutCandidateItems() {
+        log.info("Waiting up to {}s for payout candidate items...", WAIT_SECONDS);
+
+        int maxRetries = WAIT_SECONDS * 1000 / RETRY_INTERVAL_MS;
+        for (int i = 0; i < maxRetries; i++) {
+            if (!payoutFacade.findPayoutCandidateItems().isEmpty()) {
+                log.info("Payout candidate items ready. Proceeding with data init.");
+                return true;
+            }
+            try {
+                Thread.sleep(RETRY_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+
+        log.warn("Payout candidate items timeout after {}s. Skipping data init.", WAIT_SECONDS);
+        return false;
     }
 
     @Transactional
