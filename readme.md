@@ -381,3 +381,85 @@ docker-compose up -d
 [cash-service] --CashOrderPaymentSucceededEvent--> [market]
 [payout-service] --PayoutCompletedEvent--> [cash]
 ```
+
+---
+
+# 0010 - DTO/Event 클래스 record 변환
+
+## 개요
+Kafka JsonDeserializer 호환성을 위해 DTO와 Event 클래스를 Java record 타입으로 변환
+
+## 변환 이유
+- Lombok @AllArgsConstructor 클래스는 Jackson의 기본 생성자 요구사항 충족 불가
+- Kafka 메시지 역직렬화 시 `Cannot construct instance of ... (no Creators, like default constructor)` 에러 발생
+- Java record는 컴팩트 생성자를 통해 Jackson 역직렬화 자동 지원
+
+## 변경 사항
+
+### DTO 클래스 record 변환 (common 모듈)
+
+| 패키지 | 클래스 | 변환 전 | 변환 후 |
+|--------|--------|---------|---------|
+| shared.member.dto | MemberDto | class + @Getter + @AllArgsConstructor | record |
+| shared.cash.dto | CashMemberDto | class + @Getter + @AllArgsConstructor | record |
+| shared.cash.dto | WalletDto | class + @Getter + @AllArgsConstructor | record |
+| shared.market.dto | MarketMemberDto | class + @Getter + @AllArgsConstructor | record |
+| shared.market.dto | OrderDto | class + @Getter + @AllArgsConstructor + implements HasModelTypeCode | record + implements HasModelTypeCode |
+| shared.market.dto | OrderItemDto | class + @Getter + @AllArgsConstructor + implements HasModelTypeCode | record + implements HasModelTypeCode |
+| shared.payout.dto | PayoutDto | class + @Getter + @AllArgsConstructor + implements HasModelTypeCode | record + implements HasModelTypeCode |
+| shared.payout.dto | PayoutMemberDto | class + @Getter + @AllArgsConstructor | record |
+| shared.post.dto | PostDto | class + @Getter + @AllArgsConstructor + implements HasModelTypeCode | record + implements HasModelTypeCode |
+| shared.post.dto | PostCommentDto | class + @Getter + @AllArgsConstructor | record |
+
+### Event 클래스 record 변환 (common 모듈)
+
+| 패키지 | 클래스 | 변환 전 | 변환 후 |
+|--------|--------|---------|---------|
+| shared.member.event | MemberJoinedEvent | class + @Getter + @AllArgsConstructor | record |
+| shared.member.event | MemberModifiedEvent | class + @Getter + @AllArgsConstructor | record |
+| shared.cash.event | CashMemberCreatedEvent | class + @Getter + @AllArgsConstructor | record |
+| shared.cash.event | CashOrderPaymentSucceededEvent | class + @Getter + @AllArgsConstructor | record |
+| shared.cash.event | CashOrderPaymentFailedEvent | class + @Getter + @AllArgsConstructor + implements ResultType | record + implements ResultType |
+| shared.market.event | MarketMemberCreatedEvent | class + @Getter + @AllArgsConstructor | record |
+| shared.market.event | MarketOrderPaymentRequestedEvent | class + @Getter + @AllArgsConstructor | record |
+| shared.market.event | MarketOrderPaymentCompletedEvent | class + @Getter + @AllArgsConstructor | record |
+| shared.payout.event | PayoutCompletedEvent | class + @Getter + @AllArgsConstructor | record |
+| shared.payout.event | PayoutMemberCreatedEvent | class + @Getter + @AllArgsConstructor | record |
+| shared.post.event | PostCreatedEvent | class + @Getter + @AllArgsConstructor | record |
+| shared.post.event | PostCommentCreatedEvent | class + @Getter + @AllArgsConstructor | record |
+
+### 접근자 메서드 변경
+
+record 타입 변환에 따라 getter 호출 방식 변경:
+
+| 변환 전 | 변환 후 |
+|---------|---------|
+| `member.getId()` | `member.id()` |
+| `member.getUsername()` | `member.username()` |
+| `member.getNickname()` | `member.nickname()` |
+| `event.getMember()` | `event.member()` |
+| `event.getOrder()` | `event.order()` |
+| `order.getCustomerId()` | `order.customerId()` |
+| `payout.getPayeeId()` | `payout.payeeId()` |
+
+### 변경된 서비스 파일
+
+#### KafkaListener 파일
+- member-service: MemberKafkaListener.java
+- post-service: PostKafkaListener.java
+- cash-service: CashKafkaListener.java
+- market-service: MarketKafkaListener.java
+- payout-service: PayoutKafkaListener.java
+
+#### EventListener 파일
+- market-service: MarketEventListener.java
+- payout-service: PayoutEventListener.java
+
+#### UseCase 파일
+- post-service: PostSyncMemberUseCase.java
+- cash-service: CashSyncMemberUseCase.java, CashCreateWalletUseCase.java, CashCompleteOrderPaymentUseCase.java, CashCompletePayoutUseCase.java
+- market-service: MarketSyncMemberUseCase.java, MarketCreateCartUseCase.java
+- payout-service: PayoutSyncMemberUseCase.java, PayoutAddPayoutCandidateItemsUseCase.java
+
+#### common 모듈
+- CustomAuthenticationFilter.java

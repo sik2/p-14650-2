@@ -15,7 +15,7 @@ public class CashCreateWalletUseCase {
     private final WalletRepository walletRepository;
 
     public Wallet createWallet(CashMemberDto member) {
-        CashMember _member = cashMemberRepository.getReferenceById(member.getId());
+        CashMember _member = cashMemberRepository.getReferenceById(member.id());
         Wallet wallet = new Wallet(_member);
 
         return walletRepository.save(wallet);

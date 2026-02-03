@@ -22,32 +22,32 @@ public class MarketEventListener {
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(MemberJoinedEvent event) {
-        marketFacade.syncMember(event.getMember());
+        marketFacade.syncMember(event.member());
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(MemberModifiedEvent event) {
-        marketFacade.syncMember(event.getMember());
+        marketFacade.syncMember(event.member());
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(MarketMemberCreatedEvent event) {
-        marketFacade.createCart(event.getMember());
+        marketFacade.createCart(event.member());
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(CashOrderPaymentSucceededEvent event) {
-        int orderId = event.getOrder().getId();
+        int orderId = event.order().id();
         marketFacade.completeOrderPayment(orderId);
     }
 
     @TransactionalEventListener(phase = AFTER_COMMIT)
     @Transactional(propagation = REQUIRES_NEW)
     public void handle(CashOrderPaymentFailedEvent event) {
-        int orderId = event.getOrder().getId();
+        int orderId = event.order().id();
         marketFacade.cancelOrderRequestPayment(orderId);
     }
 }

@@ -21,28 +21,28 @@ public class CashKafkaListener {
     @KafkaListener(topics = KafkaTopics.MEMBER_JOINED, groupId = "cash-service")
     @Transactional
     public void handleMemberJoined(MemberJoinedEvent event) {
-        log.info("Received MemberJoinedEvent via Kafka: memberId={}", event.getMember().getId());
-        cashFacade.syncMember(event.getMember());
+        log.info("Received MemberJoinedEvent via Kafka: memberId={}", event.member().id());
+        cashFacade.syncMember(event.member());
     }
 
     @KafkaListener(topics = KafkaTopics.MEMBER_MODIFIED, groupId = "cash-service")
     @Transactional
     public void handleMemberModified(MemberModifiedEvent event) {
-        log.info("Received MemberModifiedEvent via Kafka: memberId={}", event.getMember().getId());
-        cashFacade.syncMember(event.getMember());
+        log.info("Received MemberModifiedEvent via Kafka: memberId={}", event.member().id());
+        cashFacade.syncMember(event.member());
     }
 
     @KafkaListener(topics = KafkaTopics.MARKET_ORDER_PAYMENT_REQUESTED, groupId = "cash-service")
     @Transactional
     public void handleMarketOrderPaymentRequested(MarketOrderPaymentRequestedEvent event) {
-        log.info("Received MarketOrderPaymentRequestedEvent via Kafka: orderId={}", event.getOrder().getId());
-        cashFacade.completeOrderPayment(event.getOrder(), event.getPgPaymentAmount());
+        log.info("Received MarketOrderPaymentRequestedEvent via Kafka: orderId={}", event.order().id());
+        cashFacade.completeOrderPayment(event.order(), event.pgPaymentAmount());
     }
 
     @KafkaListener(topics = KafkaTopics.PAYOUT_COMPLETED, groupId = "cash-service")
     @Transactional
     public void handlePayoutCompleted(PayoutCompletedEvent event) {
-        log.info("Received PayoutCompletedEvent via Kafka: payoutId={}", event.getPayout().getId());
-        cashFacade.completePayout(event.getPayout());
+        log.info("Received PayoutCompletedEvent via Kafka: payoutId={}", event.payout().id());
+        cashFacade.completePayout(event.payout());
     }
 }

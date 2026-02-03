@@ -15,17 +15,17 @@ public class PayoutSyncMemberUseCase {
     private final EventPublisher eventPublisher;
 
     public PayoutMember syncMember(MemberDto member) {
-        boolean isNew = !payoutMemberRepository.existsById(member.getId());
+        boolean isNew = !payoutMemberRepository.existsById(member.id());
 
         PayoutMember _member = payoutMemberRepository.save(
                 new PayoutMember(
-                        member.getId(),
-                        member.getCreateDate(),
-                        member.getModifyDate(),
-                        member.getUsername(),
+                        member.id(),
+                        member.createDate(),
+                        member.modifyDate(),
+                        member.username(),
                         "",
-                        member.getNickname(),
-                        member.getActivityScore()
+                        member.nickname(),
+                        member.activityScore()
                 )
         );
 

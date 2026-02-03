@@ -20,21 +20,21 @@ public class PayoutKafkaListener {
     @KafkaListener(topics = KafkaTopics.MEMBER_JOINED, groupId = "payout-service")
     @Transactional
     public void handleMemberJoined(MemberJoinedEvent event) {
-        log.info("Received MemberJoinedEvent via Kafka: memberId={}", event.getMember().getId());
-        payoutFacade.syncMember(event.getMember());
+        log.info("Received MemberJoinedEvent via Kafka: memberId={}", event.member().id());
+        payoutFacade.syncMember(event.member());
     }
 
     @KafkaListener(topics = KafkaTopics.MEMBER_MODIFIED, groupId = "payout-service")
     @Transactional
     public void handleMemberModified(MemberModifiedEvent event) {
-        log.info("Received MemberModifiedEvent via Kafka: memberId={}", event.getMember().getId());
-        payoutFacade.syncMember(event.getMember());
+        log.info("Received MemberModifiedEvent via Kafka: memberId={}", event.member().id());
+        payoutFacade.syncMember(event.member());
     }
 
     @KafkaListener(topics = KafkaTopics.MARKET_ORDER_PAYMENT_COMPLETED, groupId = "payout-service")
     @Transactional
     public void handleMarketOrderPaymentCompleted(MarketOrderPaymentCompletedEvent event) {
-        log.info("Received MarketOrderPaymentCompletedEvent via Kafka: orderId={}", event.getOrder().getId());
-        payoutFacade.addPayoutCandidateItems(event.getOrder());
+        log.info("Received MarketOrderPaymentCompletedEvent via Kafka: orderId={}", event.order().id());
+        payoutFacade.addPayoutCandidateItems(event.order());
     }
 }

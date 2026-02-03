@@ -16,7 +16,7 @@ public class CashCompleteOrderPaymentUseCase {
     private final EventPublisher eventPublisher;
 
     public void completeOrderPayment(OrderDto order, long pgPaymentAmount) {
-        Wallet customerWallet = cashSupport.findWalletByHolderId(order.getCustomerId()).get();
+        Wallet customerWallet = cashSupport.findWalletByHolderId(order.customerId()).get();
         Wallet holdingWallet = cashSupport.findHoldingWallet().get();
 
         if (pgPaymentAmount > 0) {
@@ -24,25 +24,25 @@ public class CashCompleteOrderPaymentUseCase {
                     pgPaymentAmount,
                     CashLog.EventType.충전__PG결제_토스페이먼츠,
                     order.getModelTypeCode(),
-                    order.getId()
+                    order.id()
             );
         }
 
-        boolean canPay = customerWallet.getBalance() >= order.getSalePrice();
+        boolean canPay = customerWallet.getBalance() >= order.salePrice();
 
         if (canPay) {
             customerWallet.debit(
-                    order.getSalePrice(),
+                    order.salePrice(),
                     CashLog.EventType.사용__주문결제,
                     order.getModelTypeCode(),
-                    order.getId()
+                    order.id()
             );
 
             holdingWallet.credit(
-                    order.getSalePrice(),
+                    order.salePrice(),
                     CashLog.EventType.임시보관__주문결제,
                     order.getModelTypeCode(),
-                    order.getId()
+                    order.id()
             );
 
             eventPublisher.publish(
@@ -55,7 +55,7 @@ public class CashCompleteOrderPaymentUseCase {
             eventPublisher.publish(
                     new CashOrderPaymentFailedEvent(
                             "400-1",
-                            "충전은 완료했지만 %번 주문을 결제완료처리를 하기에는 예치금이 부족합니다.".formatted(order.getId()),
+                            "충전은 완료했지만 %번 주문을 결제완료처리를 하기에는 예치금이 부족합니다.".formatted(order.id()),
                             order,
                             pgPaymentAmount,
                             pgPaymentAmount - customerWallet.getBalance()
